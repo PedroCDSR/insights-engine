@@ -41,16 +41,20 @@ app.post('/', async (req, res) => {
     await new Promise(r => setTimeout(r, 30000)); 
 
     // Tira um print da tela em base64
-    const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
-    await browser.close();
-
     console.log("Enviando imagem para o Gemini 1.5 Pro...");
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-
+    
+    // Usando o nome completo do modelo para evitar o erro 404
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" }); 
+    
     const result = await model.generateContent([
       prompt,
-      { inlineData: { data: screenshot, mimeType: "image/png" } }
+      {
+        inlineData: {
+          data: screenshot, // O screenshot já está em base64
+          mimeType: "image/png"
+        }
+      }
     ]);
 
     res.status(200).json({ status: "sucesso", analise: result.response.text() });
