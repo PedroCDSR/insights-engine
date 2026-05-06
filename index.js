@@ -1,6 +1,7 @@
+// index.js corrigido com lições do projeto Slides
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const express = require('express');
 const puppeteer = require('puppeteer');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
 app.use(express.json());
@@ -13,58 +14,47 @@ app.post('/', async (req, res) => {
     browser = await puppeteer.launch({
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     });
-
     const page = await browser.newPage();
-    // Definimos uma resolução alta para o Gemini ver os números pequenos
-    await page.setViewport({ width: 1920, height: 1080 });
+    await page.setViewport({ width: 1280, height: 800 });
 
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 90000 });
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
+    // Fase 1: Login
     if (!authCode) {
-      console.log("Fase 1: Disparando e-mail...");
-      await page.waitForSelector('input[type="email"]', { timeout: 20000 });
+      await page.waitForSelector('input[type="email"]');
       await page.type('input[type="email"]', 'pedro.rocha@uncover.co');
       await page.keyboard.press('Enter');
       await new Promise(r => setTimeout(r, 5000));
       await browser.close();
-      return res.status(200).json({ status: "aguardando_codigo" });
+      return res.json({ status: "aguardando_codigo" });
     }
 
-    // Fase 2: Login e Print
-    console.log("Realizando login...");
-    await page.waitForSelector('input', { timeout: 20000 });
+    // Fase 2: Autenticação e Visão
+    await page.waitForSelector('input');
     await page.type('input', authCode);
     await page.keyboard.press('Enter');
     
-    // Espera generosa para o dashboard carregar visualmente
-    console.log("Aguardando carregamento visual do dashboard...");
-    await new Promise(r => setTimeout(r, 30000)); 
+    // Tempo para o dashboard carregar (lição do timeout)
+    await new Promise(r => setTimeout(r, 20000)); 
 
-    // Tira um print da tela em base64
-    console.log("Enviando imagem para o Gemini 1.5 Pro...");
+    const screenshot = await page.screenshot({ encoding: 'base64' });
+    await browser.close();
+
     const genAI = new GoogleGenerativeAI(apiKey);
-    
-    // Usando o nome completo do modelo para evitar o erro 404
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" }); 
-    
+    // Usando o modelo Flash que provou ser mais estável no seu projeto de Slides
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
     const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: screenshot, // O screenshot já está em base64
-          mimeType: "image/png"
-        }
-      }
+      { text: prompt },
+      { inlineData: { mimeType: "image/png", data: screenshot } }
     ]);
 
-    res.status(200).json({ status: "sucesso", analise: result.response.text() });
+    res.json({ status: "sucesso", analise: result.response.text() });
 
   } catch (error) {
     if (browser) await browser.close();
-    console.error(error);
-    res.status(500).json({ status: "erro", detalhe: error.message });
+    res.json({ status: "erro", detalhe: error.message });
   }
 });
 
-const port = process.env.PORT || 8080;
-app.listen(port, '0.0.0.0', () => console.log(`Servidor ativo na porta ${port}`));
+app.listen(process.env.PORT || 8080, '0.0.0.0');
