@@ -47,4 +47,6 @@ app.post('/', async (req, res) => {
 });
 
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log(`Servidor ativo na porta ${port}`));
+app.listen(port, '0.0.0.0', () => {
+  console.log(`🚀 Robô online e ouvindo na porta ${port}`);
+});
