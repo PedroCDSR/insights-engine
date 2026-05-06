@@ -11,9 +11,17 @@ app.post('/', async (req, res) => {
 
   try {
     browser = await puppeteer.launch({
-      executablePath: '/usr/bin/google-chrome',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-    });
+          executablePath: '/usr/bin/google-chrome',
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage', // Importante para Cloud Run
+            '--disable-gpu',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process'
+          ]
+        });
 
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
@@ -48,5 +56,5 @@ app.post('/', async (req, res) => {
 
 const port = process.env.PORT || 8080;
 app.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 Servidor pronto na porta ${port}`);
+  console.log(`🚀 Servidor online na porta ${port}`);
 });
