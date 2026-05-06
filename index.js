@@ -42,7 +42,7 @@ app.post('/', async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     // Usando o modelo Flash que provou ser mais estável no seu projeto de Slides
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
     const result = await model.generateContent([
       { text: prompt },
