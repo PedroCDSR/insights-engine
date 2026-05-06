@@ -10,49 +10,57 @@ app.post('/', async (req, res) => {
   let browser;
 
   try {
-// No seu index.js, mude para:
     browser = await puppeteer.launch({
-      // Remova o executablePath ou use apenas 'google-chrome-stable'
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-      ]
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     });
 
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+    // Definimos uma resolução alta para o Gemini ver os números pequenos
+    await page.setViewport({ width: 1920, height: 1080 });
+
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 90000 });
 
     if (!authCode) {
-      await page.waitForSelector('input[type="email"]', { timeout: 10000 });
+      console.log("Fase 1: Disparando e-mail...");
+      await page.waitForSelector('input[type="email"]', { timeout: 20000 });
       await page.type('input[type="email"]', 'pedro.rocha@uncover.co');
       await page.keyboard.press('Enter');
-      await new Promise(r => setTimeout(r, 3000));
+      await new Promise(r => setTimeout(r, 5000));
       await browser.close();
       return res.status(200).json({ status: "aguardando_codigo" });
     }
 
-    await page.waitForSelector('input', { timeout: 10000 });
+    // Fase 2: Login e Print
+    console.log("Realizando login...");
+    await page.waitForSelector('input', { timeout: 20000 });
     await page.type('input', authCode);
     await page.keyboard.press('Enter');
-    await page.waitForNavigation({ waitUntil: 'networkidle2' });
-
-    const content = await page.content();
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent(`Analise: ${content.substring(0, 10000)}. Instrução: ${prompt}`);
     
+    // Espera generosa para o dashboard carregar visualmente
+    console.log("Aguardando carregamento visual do dashboard...");
+    await new Promise(r => setTimeout(r, 30000)); 
+
+    // Tira um print da tela em base64
+    const screenshot = await page.screenshot({ encoding: 'base64', fullPage: false });
     await browser.close();
+
+    console.log("Enviando imagem para o Gemini 1.5 Pro...");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+
+    const result = await model.generateContent([
+      prompt,
+      { inlineData: { data: screenshot, mimeType: "image/png" } }
+    ]);
+
     res.status(200).json({ status: "sucesso", analise: result.response.text() });
 
   } catch (error) {
     if (browser) await browser.close();
+    console.error(error);
     res.status(500).json({ status: "erro", detalhe: error.message });
   }
 });
 
 const port = process.env.PORT || 8080;
-app.listen(port, '0.0.0.0', () => {
-  console.log(`🚀 Servidor online na porta ${port}`);
-});
+app.listen(port, '0.0.0.0', () => console.log(`Servidor ativo na porta ${port}`));
