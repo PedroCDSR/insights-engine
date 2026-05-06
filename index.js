@@ -10,18 +10,16 @@ app.post('/', async (req, res) => {
   let browser;
 
   try {
+// No seu index.js, mude para:
     browser = await puppeteer.launch({
-          executablePath: '/usr/bin/google-chrome',
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // Importante para Cloud Run
-            '--disable-gpu',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process'
-          ]
-        });
+      // Remova o executablePath ou use apenas 'google-chrome-stable'
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu'
+      ]
+    });
 
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
